@@ -1,5 +1,10 @@
 //! Classical backtracking execution engine
 
+#[cfg(feature = "std")]
+use std::sync::Arc;
+#[cfg(not(feature = "std"))]
+use alloc::sync::Arc;
+
 use crate::api::Match;
 use crate::bytesearch;
 use crate::cursor;
@@ -197,10 +202,10 @@ impl<'a, Input: InputIndexer> MatchAttempter<'a, Input> {
 
         // Drive it up to the max.
         // TODO; this is dumb.
+        // eficiente: continue iterating up to max - min times, but instead of saving and restoring pos in each iteration, simply break the loop if matcher.matches returns false.
+        // The final pos will be the maximum position reached.
         for _ in 0..(max - min) {
-            let saved = pos;
             if !matcher.matches(input, dir, &mut pos) {
-                pos = saved;
                 break;
             }
         }
@@ -354,7 +359,7 @@ impl<'a, Input: InputIndexer> MatchAttempter<'a, Input> {
     // is true.
     fn run_lookaround<Dir: Direction>(
         &mut self,
-        input: &Input,
+        input: &Input, // Changed from inp: Input
         ip: IP,
         pos: Input::Position,
         start_group: CaptureGroupID,
@@ -374,7 +379,8 @@ impl<'a, Input: InputIndexer> MatchAttempter<'a, Input> {
         core::mem::swap(&mut self.bts, &mut saved_bts);
 
         // Enter into the lookaround's instruction stream.
-        let matched = self.try_at_pos(*input, ip, pos, Dir::new()).is_some();
+        // Pass input by reference
+        let matched = self.try_at_pos(input, ip, pos, Dir::new()).is_some();
 
         // Put back our bts.
         core::mem::swap(&mut self.bts, &mut saved_bts);
@@ -523,7 +529,7 @@ impl<'a, Input: InputIndexer> MatchAttempter<'a, Input> {
     /// Attempt to match at a given IP and position.
     fn try_at_pos<Dir: Direction>(
         &mut self,
-        inp: Input,
+        input: &Input, // Changed from inp: Input
         mut ip: IP,
         mut pos: Input::Position,
         dir: Dir,
@@ -533,7 +539,7 @@ impl<'a, Input: InputIndexer> MatchAttempter<'a, Input> {
             "Should be only initial exhausted backtrack insn"
         );
         // TODO: we are inconsistent about passing Input by reference or value.
-        let input = &inp;
+        // Removed: let input = &inp;
         let re = self.re;
         // These are not really loops, they are just labels that we effectively 'goto'
         // to.
@@ -931,7 +937,7 @@ impl<Input: InputIndexer> BacktrackExecutor<'_, Input> {
         Match {
             range: self.input.pos_to_offset(start)..self.input.pos_to_offset(end),
             captures,
-            group_names: self.matcher.re.group_names.clone(),
+            group_names: Arc::clone(&self.matcher.re.group_names),
         }
     }
 
@@ -943,25 +949,25 @@ impl<Input: InputIndexer> BacktrackExecutor<'_, Input> {
         next_start: &mut Option<Input::Position>,
         prefix_search: &PrefixSearch,
     ) -> Option<Match> {
-        let inp = self.input;
+        // Pass self.input by reference
         loop {
             // Find the next start location, or None if none.
             // Don't try this unless CODE_UNITS_ARE_BYTES - i.e. don't do byte searches
             // on UTF-16 or UCS2.
             if Input::CODE_UNITS_ARE_BYTES {
-                pos = inp.find_bytes(pos, prefix_search)?;
+                pos = self.input.find_bytes(pos, prefix_search)?;
             }
-            if let Some(end) = self.matcher.try_at_pos(inp, 0, pos, Forward::new()) {
+            if let Some(end) = self.matcher.try_at_pos(&self.input, 0, pos, Forward::new()) {
                 // If we matched the empty string, we have to increment.
                 if end != pos {
                     *next_start = Some(end)
                 } else {
-                    *next_start = inp.next_right_pos(end);
+                    *next_start = self.input.next_right_pos(end);
                 }
                 return Some(self.successful_match(pos, end));
             }
             // Didn't find it at this position, try the next one.
-            pos = inp.next_right_pos(pos)?;
+            pos = self.input.next_right_pos(pos)?;
         }
     }
 }

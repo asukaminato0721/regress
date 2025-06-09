@@ -6,6 +6,8 @@ use {
     hashbrown::HashMap,
 };
 
+use std::sync::Arc;
+
 use crate::api;
 use crate::bytesearch::{AsciiBitmap, ByteArraySet, ByteBitmap};
 use crate::types::{BracketContents, CaptureGroupID, LoopID};
@@ -197,7 +199,7 @@ pub struct CompiledRegex {
     //   - Empty, if there were no named capture groups.
     //   - A list of names with length `groups`, corresponding to the capture
     //     group names in order. Groups without names have an empty string.
-    pub group_names: Box<[Box<str>]>,
+    pub group_names: Arc<[Box<str>]>,
 
     // Flags controlling matching.
     pub flags: api::Flags,

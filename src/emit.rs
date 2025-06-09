@@ -1,5 +1,6 @@
 //! Regex compiler back-end: transforms IR into a CompiledRegex
 
+use std::sync::Arc;
 use crate::bytesearch::{AsciiBitmap, ByteArraySet};
 use crate::insn::{CompiledRegex, Insn, LoopFields, MAX_BYTE_SEQ_LENGTH, MAX_CHAR_SET_LENGTH};
 use crate::ir;
@@ -357,7 +358,7 @@ pub fn emit(n: &ir::Regex) -> CompiledRegex {
             brackets: Vec::new(),
             loops: 0,
             groups: 0,
-            group_names: Box::new([]),
+            group_names: Arc::new([]), // Initialize with empty Arc
             flags: n.flags,
             start_pred: startpredicate::predicate_for_re(n),
         },
@@ -367,10 +368,10 @@ pub fn emit(n: &ir::Regex) -> CompiledRegex {
     // Populate group names, unless all are empty.
     debug_assert!(
         result.group_names.is_empty(),
-        "Group names should not be set"
+        "Group names should not be set yet or be an empty Arc"
     );
     if emitter.group_names.iter().any(|s| !s.is_empty()) {
-        result.group_names = emitter.group_names.into_boxed_slice();
+        result.group_names = Arc::from(emitter.group_names.into_boxed_slice());
     }
     debug_assert!(
         result.group_names.is_empty() || result.group_names.len() == result.groups as usize

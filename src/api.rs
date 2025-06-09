@@ -19,9 +19,10 @@ use crate::util::to_char_sat;
 
 use core::{fmt, str::FromStr};
 #[cfg(feature = "std")]
+use std::sync::Arc;
 #[cfg(not(feature = "std"))]
 use {
-    alloc::{string::String, vec::Vec},
+    alloc::{string::String, vec::Vec, sync::Arc},
     hashbrown::{HashMap, hash_map::Iter},
 };
 
@@ -146,7 +147,7 @@ pub struct Match {
     //   - Empty, if there were no named capture groups.
     //   - A list of names with length `captures.len()`, corresponding to the
     //     capture group names in order. Groups without names have an empty string.
-    pub(crate) group_names: Box<[Box<str>]>,
+    pub(crate) group_names: Arc<[Box<str>]>,
 }
 
 impl Match {

@@ -250,14 +250,24 @@ impl<'a, Input: InputIndexer> MatchAttempter<'a, Input> {
                 let bc = &re.brackets[idx];
                 Self::run_scm_loop_impl(input, pos, min, max, dir, scm::Bracket { bc })
             }
-            Insn::AsciiBracket(bitmap) => {
-                Self::run_scm_loop_impl(input, pos, min, max, dir, scm::MatchByteSet { bytes: bitmap })
-            }
+            Insn::AsciiBracket(bitmap) => Self::run_scm_loop_impl(
+                input,
+                pos,
+                min,
+                max,
+                dir,
+                scm::MatchByteSet { bytes: bitmap },
+            ),
             Insn::MatchAny => {
                 Self::run_scm_loop_impl(input, pos, min, max, dir, scm::MatchAny::new())
             }
             Insn::MatchAnyExceptLineTerminator => Self::run_scm_loop_impl(
-                input, pos, min, max, dir, scm::MatchAnyExceptLineTerminator::new()
+                input,
+                pos,
+                min,
+                max,
+                dir,
+                scm::MatchAnyExceptLineTerminator::new(),
             ),
             Insn::CharSet(chars) => {
                 Self::run_scm_loop_impl(input, pos, min, max, dir, scm::CharSet { chars })
@@ -320,12 +330,14 @@ impl<'a, Input: InputIndexer> MatchAttempter<'a, Input> {
             Insn::AsciiBracket(bitmap) => {
                 Self::compute_max_pos(input, pos, limit, dir, scm::MatchByteSet { bytes: bitmap })
             }
-            Insn::MatchAny => {
-                Self::compute_max_pos(input, pos, limit, dir, scm::MatchAny::new())
-            }
-            Insn::MatchAnyExceptLineTerminator => {
-                Self::compute_max_pos(input, pos, limit, dir, scm::MatchAnyExceptLineTerminator::new())
-            }
+            Insn::MatchAny => Self::compute_max_pos(input, pos, limit, dir, scm::MatchAny::new()),
+            Insn::MatchAnyExceptLineTerminator => Self::compute_max_pos(
+                input,
+                pos,
+                limit,
+                dir,
+                scm::MatchAnyExceptLineTerminator::new(),
+            ),
             Insn::CharSet(chars) => {
                 Self::compute_max_pos(input, pos, limit, dir, scm::CharSet { chars })
             }
@@ -387,7 +399,7 @@ impl<'a, Input: InputIndexer> MatchAttempter<'a, Input> {
         } else {
             // For non-greedy loops, initially only compute the minimum position
             let (min_pos, _) = Self::with_scm_loop_impl(self.re, input, *pos, min, min, dir, ip)?;
-            
+
             // For non-greedy loops, we only compute the max position if we need to set up backtracking
             let max_pos = if min < max {
                 // We need to compute the max for backtracking purposes

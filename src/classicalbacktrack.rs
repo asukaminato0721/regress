@@ -413,7 +413,7 @@ impl<'a, Input: InputIndexer> MatchAttempter<'a, Input> {
                 }
             };
             let (min_pos, _) = min_only_res?;
-            
+
             // For non-greedy loops, we only compute the max position if we need to set up backtracking
             let max_pos = if min < max {
                 // We need to compute the max for backtracking purposes
@@ -447,9 +447,13 @@ impl<'a, Input: InputIndexer> MatchAttempter<'a, Input> {
                         dir,
                         scm::MatchAnyExceptLineTerminator::new(),
                     ),
-                    Insn::CharSet(chars) => {
-                        Self::compute_max_pos(input, min_pos, max - min, dir, scm::CharSet { chars })
-                    }
+                    Insn::CharSet(chars) => Self::compute_max_pos(
+                        input,
+                        min_pos,
+                        max - min,
+                        dir,
+                        scm::CharSet { chars },
+                    ),
                     &Insn::ByteSet2(bytes) => Self::compute_max_pos(
                         input,
                         min_pos,
